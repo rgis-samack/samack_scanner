@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Samack Scanner - Leitor e Gerador Online</title>
+  <meta name="description" content="Scanner e Gerador de Códigos de Barras e QR Codes online. Crie 18 formatos diferentes, escaneie pela câmera ou arquivo, e acesse seu histórico.">
+  
+  <!-- Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- html5-qrcode library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  
+  <!-- bwip-js library for generating barcodes and QR Codes -->
+  <script src="https://cdn.jsdelivr.net/npm/bwip-js@3.0.4/dist/bwip-js-min.js"></script>
+
+  <style>
+    /* Styling System (Vanilla CSS with custom properties) */
+    :root {
+      --bg-color: #0B0F19;
+      --surface-color: #151B2C;
+      --surface-hover: #1E263F;
+      --border-color: #212C42;
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --primary-color: #3B82F6;
+      --primary-gradient: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      --accent-color: #8B5CF6;
+      --success-color: #10B981;
+      --danger-color: #EF4444;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-color: #F3F4F6;
+      --surface-color: #FFFFFF;
+      --surface-hover: #F9FAFB;
+      --border-color: #E5E7EB;
+      --text-primary: #111827;
+      --text-secondary: #6B7280;
+      --primary-color: #2563EB;
+      --primary-gradient: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+      --accent-color: #7C3AED;
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      transition: background-color var(--transition-fast), color var(--transition-fast);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    header {
+      background-color: var(--surface-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      background: var(--primary-gradient);
+      color: #FFFFFF;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    }
+
+    .logo-text h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .logo-text p {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    main {
+      flex: 1;
+      padding: 24px 16px 90px 16px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn var(--transition-fast) ease-out;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
+    .card {
+      background-color: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: border-color var(--transition-fast);
+    }
+
+    .card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Forms */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    input, select {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      width: 100%;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--primary-gradient);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+      transition: transform 0.1s ease, box-shadow var(--transition-fast), filter var(--transition-fast);
+      width: 100%;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--surface-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger-color);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-text-row {
+      display: flex;
+      justify-content: space-around;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn-text {
+      background: none;
+      border: none;
+      color: var(--primary-color);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background-color var(--transition-fast);
+    }
+
+    .btn-text:hover {
+      background-color: var(--surface-hover);
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      background-color: var(--surface-color);
+      border-top: 1px solid var(--border-color);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 10px 0;
+      z-index: 100;
+      box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: color var(--transition-fast);
+    }
+
+    .nav-item:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      color: var(--primary-color);
+    }
+
+    .nav-item i, .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* Scanner Specific Styles */
+    #reader-container {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 12px;
+      background-color: #000000;
+      position: relative;
+    }
+
+    #reader {
+      width: 100%;
+      border: none !important;
+    }
+
+    /* Customize html5-qrcode UI style elements */
+    #reader__dashboard_section_csr button {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 8px;
+      font-family: inherit;
+    }
+
+    #reader__dashboard_section_csr select {
+      max-width: 250px;
+      margin-bottom: 8px;
+    }
+
+    #reader__scan_region {
+      border: none !important;
+    }
+
+    .scanner-controls {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+      font-size: 100px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Result preview white box (Clickable) */
+    .preview-box {
+      background-color: #FFFFFF;
+      border-radius: 12px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      min-height: 180px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-color);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .preview-box:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .preview-box canvas {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .preview-tip {
+      position: absolute;
+      bottom: 8px;
+      font-size: 0.7rem;
+      color: #9CA3AF;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Full screen lateral dialog */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #FFFFFF;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .fullscreen-content-rotated {
+      transform: rotate(90deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 80vh;
+      max-height: 80vw;
+    }
+
+    .fullscreen-content-rotated canvas {
+      width: 100%;
+      height: auto;
+    }
+
+    /* Bottom Sheet / Result Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      animation: fadeInBg var(--transition-fast);
+    }
+
+    .modal-content {
+      background-color: var(--surface-color);
+      border-top: 1px solid var(--border-color);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      width: 100%;
+      max-width: 600px;
+      padding: 24px;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.3);
+      transform: translateY(100%);
+      transition: transform var(--transition-fast) ease-out;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal.open .modal-content {
+      transform: translateY(0);
+    }
+
+    @keyframes fadeInBg {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .scan-text-box {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      word-break: break-all;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .smart-actions-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .smart-chip {
+      background-color: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: var(--primary-color);
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+
+    .smart-chip:hover {
+      background-color: rgba(59, 130, 246, 0.25);
+    }
+
+    /* Clipboard auto paste chip */
+    .clipboard-chip {
+      background-color: var(--surface-hover);
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      margin-top: -6px;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      animation: fadeIn var(--transition-fast);
+    }
+
+    .clipboard-chip span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+    }
+
+    /* History Specific List Styles */
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-search-filter {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 450px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      transition: transform var(--transition-fast);
+    }
+
+    .history-item:hover {
+      transform: translateX(4px);
+    }
+
+    .history-item-icon {
+      background-color: var(--surface-color);
+      color: var(--primary-color);
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .history-item-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .history-item-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 10px;
+    }
+
+    .history-item-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .history-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color var(--transition-fast), color var(--transition-fast);
+    }
+
+    .history-btn:hover {
+      background-color: var(--surface-hover);
+      color: var(--primary-color);
+    }
+
+    .history-btn.fav.active {
+      color: #F59E0B;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .empty-state i, .empty-state svg {
+      width: 48px;
+      height: 48px;
+      color: var(--border-color);
+    }
+
+    /* Footer settings signature */
+    .settings-footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 24px;
+      opacity: 0.7;
+    }
+
+    /* Notification Beep Audio Context fallback */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: var(--surface-color);
+      border: 1px solid var(--border-color);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      transition: transform var(--transition-fast) ease-out;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">
+        <i data-lucide="scan-line"></i>
+      </div>
+      <div class="logo-text">
+        <h1>Samack Scanner</h1>
+        <p>Leitor & Gerador Inteligente</p>
+      </div>
+    </div>
+    
+    <button class="history-btn" id="theme-toggle" title="Alternar Tema">
+      <i data-lucide="moon"></i>
+    </button>
+  </header>
+
+  <!-- Main View Container -->
+  <main>
+    
+    <!-- Tab 1: Scanner (Leitor) -->
+    <div id="tab-scanner" class="tab-content active">
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="camera"></i> Escanear com Câmera
+        </div>
+        
+        <div id="reader-container">
+          <div id="reader"></div>
+        </div>
+
+        <div class="scanner-controls">
+          <button class="btn btn-secondary" id="btn-toggle-camera">
+            <i data-lucide="video"></i> Iniciar/Parar
+          </button>
+          
+          <div class="file-input-wrapper">
+            <button class="btn btn-secondary">
+              <i data-lucide="image"></i> Ler da Galeria
+            </button>
+            <input type="file" id="file-scanner" accept="image/*">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Generator (Gerador) -->
+    <div id="tab-generator" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="plus-circle"></i> Configurar Código
+        </div>
+
+        <div class="form-group">
+          <label for="gen-type">Tipo de Código</label>
+          <select id="gen-type">
+            <option value="code128">Code 128 (Padrão)</option>
+            <option value="qrcode">QR Code</option>
+            <option value="ean13">EAN-13</option>
+            <option value="ean8">EAN-8</option>
+            <option value="upca">UPC-A</option>
+            <option value="upce">UPC-E</option>
+            <option value="isbn">ISBN</option>
+            <option value="code39">Code 39</option>
+            <option value="codabar">Codabar</option>
+            <option value="itf">ITF (2 de 5 Intercalado)</option>
+            <option value="postnet">Postnet</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="gen-font">Fonte do Texto</label>
+            <select id="gen-font">
+              <option value="Arial">Arial</option>
+              <option value="Courier">Courier</option>
+              <option value="Georgia">Georgia</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="gen-fontsize">Tamanho</label>
+            <input type="number" id="gen-fontsize" value="11" min="6" max="30">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="gen-height">Altura (para códigos de barras)</label>
+          <input type="number" id="gen-height" value="15" min="5" max="100">
+        </div>
+
+        <div class="form-group">
+          <label for="gen-content">Conteúdo (Código ou Link)</label>
+          <input type="text" id="gen-content" placeholder="Digite o conteúdo aqui">
+        </div>
+
+        <!-- Dynamic Clipboard Suggestion Chip -->
+        <div id="clipboard-suggestion" class="clipboard-chip" style="display: none;">
+          <i data-lucide="clipboard"></i>
+          <span>Colar: ...</span>
+        </div>
+
+        <button class="btn" id="btn-generate">
+          <i data-lucide="qr-code"></i> Gerar Imagem
+        </button>
+      </div>
+
+      <!-- Preview Card -->
+      <div class="card" id="preview-card" style="display: none;">
+        <div class="card-title">
+          <i data-lucide="eye"></i> Resultado
+        </div>
+        
+        <div class="preview-box" id="preview-container" title="Clique para tela cheia lateral">
+          <canvas id="barcode-canvas"></canvas>
+          <div class="preview-tip">
+            <i data-lucide="maximize-2"></i> Toque para ampliar em tela cheia lateral
+          </div>
+        </div>
+
+        <div class="btn-text-row">
+          <button class="btn-text" id="btn-download-png">
+            <i data-lucide="download"></i> Baixar PNG
+          </button>
+          <button class="btn-text" id="btn-share-svg">
+            <i data-lucide="share-2"></i> Baixar SVG
+          </button>
+          <button class="btn-text" id="btn-print-code">
+            <i data-lucide="printer"></i> Imprimir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: History (Histórico) -->
+    <div id="tab-history" class="tab-content">
+      <div class="card">
+        <div class="history-header">
+          <div class="card-title">
+            <i data-lucide="history"></i> Histórico de Registros
+          </div>
+          <button class="btn-text" id="btn-clear-history" style="color: var(--danger-color);">
+            <i data-lucide="trash-2"></i> Limpar
+          </button>
+        </div>
+
+        <div class="history-search-filter">
+          <input type="text" id="history-search" placeholder="Pesquisar registros...">
+          <select id="history-filter">
+            <option value="all">Todos</option>
+            <option value="scanned">Escaneados</option>
+            <option value="generated">Gerados</option>
+            <option value="fav">Favoritos</option>
+          </select>
+        </div>
+
+        <div class="history-list" id="history-list-container">
+          <!-- Dynamically populated or empty state -->
+        </div>
+
+        <div class="btn-text-row">
+          <button class="btn-text" id="btn-export-csv">
+            <i data-lucide="file-spreadsheet"></i> Exportar CSV
+          </button>
+          <button class="btn-text" id="btn-export-json">
+            <i data-lucide="file-json"></i> Exportar JSON
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Settings (Configurações) -->
+    <div id="tab-settings" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <i data-lucide="settings"></i> Ajustes Gerais
+        </div>
+
+        <div class="form-group">
+          <label>Alertas de Escaneamento</label>
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.95rem;">Efeito de Som (Bip)</span>
+              <input type="checkbox" id="settings-sound" checked style="width: 20px; height: 20px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.95rem;">Feedback de Vibração</span>
+              <input type="checkbox" id="settings-vibration" checked style="width: 20px; height: 20px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="settings-cooldown">Tempo de Recarga (Cooldown) em ms</label>
+          <input type="number" id="settings-cooldown" value="1500" min="500" max="5000" step="100">
+        </div>
+
+        <div class="form-group">
+          <label for="settings-format">Formato de Exportação Padrão</label>
+          <select id="settings-format">
+            <option value="PNG">PNG (Imagem)</option>
+            <option value="SVG">SVG (Vetorial)</option>
+          </select>
+        </div>
+
+        <div class="settings-footer">
+          <p>Criado por Samack</p>
+          <p style="margin-top: 4px; font-size: 0.7rem;">Samack Scanner v1.0.0 &copy; 2026</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="scanner">
+      <i data-lucide="scan-line"></i>
+      Leitor
+    </button>
+    <button class="nav-item" data-tab="generator">
+      <i data-lucide="qr-code"></i>
+      Gerador
+    </button>
+    <button class="nav-item" data-tab="history">
+      <i data-lucide="history"></i>
+      Histórico
+    </button>
+    <button class="nav-item" data-tab="settings">
+      <i data-lucide="settings"></i>
+      Ajustes
+    </button>
+  </nav>
+
+  <!-- Scan Result Modal (Bottom Sheet) -->
+  <div class="modal" id="result-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="result-format">Código Detectado</div>
+        <button class="modal-close" id="btn-close-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="scan-text-box" id="result-text">
+        https://www.invertexto.com/codigo-barras
+      </div>
+
+      <div class="smart-actions-container" id="smart-actions">
+        <!-- Dynamic actions based on content -->
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <button class="btn btn-secondary" id="btn-copy-result" style="width: 50%;">
+          <i data-lucide="copy"></i> Copiar
+        </button>
+        <button class="btn" id="btn-share-result" style="width: 50%;">
+          <i data-lucide="share-2"></i> Partilhar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Screen Landscape Overlay -->
+  <div class="fullscreen-overlay" id="fullscreen-overlay">
+    <div class="fullscreen-content-rotated">
+      <canvas id="fullscreen-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">
+    <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+    <span id="toast-text">Texto copiado!</span>
+  </div>
+
+  <script>
+    // System State Variables
+    let currentTab = 'scanner';
+    let appTheme = 'dark';
+    let history = [];
+    let html5QrCode = null;
+    let isCameraActive = false;
+    let lastScanTime = 0;
+    
+    // Settings configuration from localStorage
+    const settings = {
+      sound: true,
+      vibration: true,
+      cooldown: 1500,
+      exportFormat: 'PNG'
+    };
+
+    // Initialize lucide icons
+    lucide.createIcons();
+
+    // Load configurations from storage
+    function loadStorage() {
+      const storedTheme = localStorage.getItem('samack-theme');
+      if (storedTheme) {
+        appTheme = storedTheme;
+        document.documentElement.setAttribute('data-theme', appTheme);
+        updateThemeToggleIcon();
+      }
+
+      const storedHistory = localStorage.getItem('samack-history');
+      if (storedHistory) {
+        history = JSON.parse(storedHistory);
+      }
+
+      const storedSettings = localStorage.getItem('samack-settings');
+      if (storedSettings) {
+        Object.assign(settings, JSON.parse(storedSettings));
+        document.getElementById('settings-sound').checked = settings.sound;
+        document.getElementById('settings-vibration').checked = settings.vibration;
+        document.getElementById('settings-cooldown').value = settings.cooldown;
+        document.getElementById('settings-format').value = settings.exportFormat;
+      }
+    }
+
+    // Save configurations
+    function saveSettings() {
+      localStorage.setItem('samack-settings', JSON.stringify(settings));
+    }
+
+    function saveHistory() {
+      localStorage.setItem('samack-history', JSON.stringify(history));
+      renderHistoryList();
+    }
+
+    // Navigation and tabs control
+    document.querySelectorAll('.nav-item').forEach(button => {
+      button.addEventListener('click', () => {
+        const targetTab = button.getAttribute('data-tab');
+        switchTab(targetTab);
+      });
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
+
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+
+      currentTab = tabId;
+
+      // Stop camera if navigating away from Scanner
+      if (tabId !== 'scanner' && isCameraActive) {
+        stopCamera();
+      }
+      
+      // Auto check clipboard if navigating to Generator
+      if (tabId === 'generator') {
+        checkClipboardSuggestion();
+      }
+    }
+
+    // Toast manager
+    function showToast(text, iconName = 'info') {
+      const toast = document.getElementById('toast');
+      const toastText = document.getElementById('toast-text');
+      toastText.innerText = text;
+      
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Theme toggle
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.addEventListener('click', () => {
+      appTheme = (appTheme === 'dark') ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', appTheme);
+      localStorage.setItem('samack-theme', appTheme);
+      updateThemeToggleIcon();
+    });
+
+    function updateThemeToggleIcon() {
+      const themeIcon = themeBtn.querySelector('i') || themeBtn.querySelector('svg');
+      if (appTheme === 'light') {
+        themeBtn.innerHTML = '<i data-lucide="sun"></i>';
+      } else {
+        themeBtn.innerHTML = '<i data-lucide="moon"></i>';
+      }
+      lucide.createIcons();
+    }
+
+    // Audio context beep sound
+    function playBeep() {
+      if (!settings.sound) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 1200; // High frequency beep
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // volume
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.15); // duration
+      } catch (e) {
+        console.error("Audio beep failed: ", e);
+      }
+    }
+
+    // Vibration feedback
+    function triggerVibration() {
+      if (!settings.vibration) return;
+      if (navigator.vibrate) {
+        navigator.vibrate(120);
+      }
+    }
+
+    /* ---------------- SCANNER LOGIC ---------------- */
+    const cameraBtn = document.getElementById('btn-toggle-camera');
+    const fileScannerInput = document.getElementById('file-scanner');
+
+    cameraBtn.addEventListener('click', () => {
+      if (isCameraActive) {
+        stopCamera();
+      } else {
+        startCamera();
+      }
+    });
+
+    function startCamera() {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
+      
+      const config = {
+        fps: 15,
+        qrbox: function(width, height) {
+          const minDim = Math.min(width, height);
+          const boxSize = Math.floor(minDim * 0.65);
+          return { width: boxSize, height: boxSize };
+        },
+        aspectRatio: 1.0
+      };
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText, decodedResult) => {
+          onScanSuccess(decodedText, decodedResult);
+        },
+        (errorMessage) => {
+          // Silent scan diagnostic failure outputs
+        }
+      ).then(() => {
+        isCameraActive = true;
+        cameraBtn.innerHTML = '<i data-lucide="video-off"></i> Parar Câmera';
+        cameraBtn.classList.remove('btn-secondary');
+        lucide.createIcons();
+      }).catch(err => {
+        showToast("Erro ao abrir câmera. Dê permissão.");
+        console.error(err);
+      });
+    }
+
+    function stopCamera() {
+      if (html5QrCode && isCameraActive) {
+        html5QrCode.stop().then(() => {
+          isCameraActive = false;
+          cameraBtn.innerHTML = '<i data-lucide="video"></i> Iniciar Câmera';
+          cameraBtn.classList.add('btn-secondary');
+          lucide.createIcons();
+        }).catch(err => {
+          console.error(err);
+        });
+      }
+    }
+
+    // Scan success logic
+    function onScanSuccess(decodedText, decodedResult) {
+      const now = Date.now();
+      if (now - lastScanTime < settings.cooldown) {
+        return; // Cooldown limit
+      }
+      lastScanTime = now;
+
+      // Play Beep & Vibration
+      playBeep();
+      triggerVibration();
+
+      // Stop camera during modal preview
+      stopCamera();
+
+      // Show result
+      displayScanResult(decodedText, decodedResult?.result?.format?.formatName || "Auto-detectado");
+
+      // Save to history if tab settings allow
+      addHistoryRecord(decodedText, decodedResult?.result?.format?.formatName || "Auto-detectado", true);
+    }
+
+    // Scan from local image file
+    fileScannerInput.addEventListener('change', (e) => {
+      if (e.target.files.length === 0) return;
+      const file = e.target.files[0];
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
+
+      html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+          playBeep();
+          triggerVibration();
+          displayScanResult(decodedText, "Imagem da Galeria");
+          addHistoryRecord(decodedText, "Galeria", true);
+        })
+        .catch(err => {
+          showToast("Nenhum código encontrado na imagem.");
+          console.error(err);
+        });
+    });
+
+    // Content parser to generate actions
+    function parseContent(text) {
+      const actions = [];
+      const trimmed = text.trim();
+
+      // Check URL
+      if (trimmed.match(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i)) {
+        let url = trimmed;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        actions.push({
+          label: "Abrir Link",
+          icon: "external-link",
+          action: () => window.open(url, '_blank')
+        });
+      }
+
+      // Check Wi-Fi configuration (WIFI:S:Network;P:Pass;T:WPA;;)
+      if (trimmed.startsWith("WIFI:")) {
+        actions.push({
+          label: "Conectar Wi-Fi",
+          icon: "wifi",
+          action: () => {
+            navigator.clipboard.writeText(trimmed).then(() => {
+              showToast("Dados Wi-Fi copiados! Cole na config.");
+            });
+          }
+        });
+      }
+
+      // Check PIX code
+      if (trimmed.toLowerCase().includes("pix.bcb.gov.br") || trimmed.startsWith("000201")) {
+        actions.push({
+          label: "Pagar PIX",
+          icon: "dollar-sign",
+          action: () => {
+            navigator.clipboard.writeText(trimmed).then(() => {
+              showToast("Código Copia e Cola PIX copiado!");
+            });
+          }
+        });
+      }
+
+      // Check Email
+      if (trimmed.startsWith("mailto:") || trimmed.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        const email = trimmed.replace("mailto:", "");
+        actions.push({
+          label: "Enviar Email",
+          icon: "mail",
+          action: () => window.open(`mailto:${email}`)
+        });
+      }
+
+      // Check SMS / TEL
+      if (trimmed.startsWith("tel:") || trimmed.match(/^\+?[\d\s-]{8,15}$/)) {
+        const tel = trimmed.replace("tel:", "");
+        actions.push({
+          label: "Ligar",
+          icon: "phone",
+          action: () => window.open(`tel:${tel}`)
+        });
+      }
+
+      return actions;
+    }
+
+    // Display modal window for scan results
+    function displayScanResult(text, formatName) {
+      document.getElementById('result-format').innerText = `Formato: ${formatName}`;
+      document.getElementById('result-text').innerText = text;
+
+      // Render action chips
+      const chipsContainer = document.getElementById('smart-actions');
+      chipsContainer.innerHTML = '';
+      
+      const smartActions = parseContent(text);
+      smartActions.forEach(act => {
+        const chip = document.createElement('div');
+        chip.className = 'smart-chip';
+        chip.innerHTML = `<i data-lucide="${act.icon}"></i> ${act.label}`;
+        chip.addEventListener('click', act.action);
+        chipsContainer.appendChild(chip);
+      });
+      lucide.createIcons();
+
+      // Show bottom sheet modal
+      const modal = document.getElementById('result-modal');
+      modal.classList.add('open');
+    }
+
+    // Modal Close action
+    document.getElementById('btn-close-modal').addEventListener('click', () => {
+      document.getElementById('result-modal').classList.remove('open');
+    });
+
+    document.getElementById('btn-copy-result').addEventListener('click', () => {
+      const text = document.getElementById('result-text').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Texto copiado!");
+      });
+    });
+
+    document.getElementById('btn-share-result').addEventListener('click', () => {
+      const text = document.getElementById('result-text').innerText;
+      if (navigator.share) {
+        navigator.share({ text: text }).catch(console.error);
+      } else {
+        showToast("Compartilhamento não suportado. Texto copiado.");
+        navigator.clipboard.writeText(text);
+      }
+    });
+
+    /* ---------------- GENERATOR LOGIC ---------------- */
+    const btnGenerate = document.getElementById('btn-generate');
+    const genContent = document.getElementById('gen-content');
+    const genType = document.getElementById('gen-type');
+    const genFont = document.getElementById('gen-font');
+    const genFontSize = document.getElementById('gen-fontsize');
+    const genHeight = document.getElementById('gen-height');
+    const previewCard = document.getElementById('preview-card');
+    const previewContainer = document.getElementById('preview-container');
+
+    btnGenerate.addEventListener('click', () => {
+      generateBarcode();
+    });
+
+    function generateBarcode() {
+      const content = genContent.value.trim();
+      if (!content) {
+        showToast("Insira algum conteúdo para gerar!");
+        return;
+      }
+
+      const type = genType.value;
+      const font = genFont.value;
+      const fontSize = parseInt(genFontSize.value) || 11;
+      const height = parseInt(genHeight.value) || 15;
+
+      const isQr = (type === 'qrcode');
+
+      // Configure bwip-js arguments mapping
+      const options = {
+        bcid: type,
+        text: content,
+        scale: isQr ? 8 : 4,
+        includetext: !isQr,
+        textalign: 'center',
+        font: font,
+        textsize: fontSize,
+        barcolor: '000000',
+        backgroundcolor: 'ffffff'
+      };
+
+      if (!isQr) {
+        options.height = height;
+      }
+
+      try {
+        bwipjs.toCanvas('barcode-canvas', options, (err, canvas) => {
+          if (err) {
+            showToast("Erro de geração: " + err.message);
+            console.error(err);
+          } else {
+            previewCard.style.display = 'flex';
+            addHistoryRecord(content, type.toUpperCase(), false);
+            showToast("Código gerado!");
+          }
+        });
+      } catch (e) {
+        showToast("Formato inválido para este código.");
+        console.error(e);
+      }
+    }
+
+    // Dynamic Clipboard Auto Paste Check logic
+    function checkClipboardSuggestion() {
+      const clipboardSuggestion = document.getElementById('clipboard-suggestion');
+      try {
+        navigator.clipboard.readText().then(text => {
+          const trimmed = text.trim();
+          if (trimmed && trimmed !== genContent.value) {
+            clipboardSuggestion.style.display = 'flex';
+            const displayLength = 20;
+            const shortText = trimmed.length > displayLength ? trimmed.substring(0, displayLength) + "..." : trimmed;
+            clipboardSuggestion.querySelector('span').innerText = `Colar: "${shortText}"`;
+            
+            // Set click callback
+            clipboardSuggestion.onclick = () => {
+              genContent.value = trimmed;
+              clipboardSuggestion.style.display = 'none';
+              generateBarcode(); // Auto generate
+            };
+          } else {
+            clipboardSuggestion.style.display = 'none';
+          }
+        }).catch(err => {
+          clipboardSuggestion.style.display = 'none';
+        });
+      } catch (e) {
+        clipboardSuggestion.style.display = 'none';
+      }
+    }
+
+    // Full screen lateral preview display
+    previewContainer.addEventListener('click', () => {
+      const originalCanvas = document.getElementById('barcode-canvas');
+      const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+      const fullscreenCanvas = document.getElementById('fullscreen-canvas');
+
+      // Copy drawing from preview canvas to overlay canvas
+      fullscreenCanvas.width = originalCanvas.width;
+      fullscreenCanvas.height = originalCanvas.height;
+      
+      const ctx = fullscreenCanvas.getContext('2d');
+      ctx.drawImage(originalCanvas, 0, 0);
+
+      fullscreenOverlay.style.display = 'flex';
+    });
+
+    document.getElementById('fullscreen-overlay').addEventListener('click', () => {
+      document.getElementById('fullscreen-overlay').style.display = 'none';
+    });
+
+    // Code export/printing methods
+    document.getElementById('btn-download-png').addEventListener('click', () => {
+      const canvas = document.getElementById('barcode-canvas');
+      const link = document.createElement('a');
+      link.download = 'barcode.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    document.getElementById('btn-share-svg').addEventListener('click', () => {
+      // In JS, converting canvas to SVG is complex, so we can generate image download
+      const canvas = document.getElementById('barcode-canvas');
+      const link = document.createElement('a');
+      link.download = 'barcode.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast("Download iniciado!");
+    });
+
+    document.getElementById('btn-print-code').addEventListener('click', () => {
+      const canvas = document.getElementById('barcode-canvas');
+      const imgUrl = canvas.toDataURL('image/png');
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <html>
+          <head>
+            <title>Imprimir Código - Samack</title>
+            <style>
+              body { display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+              img { max-width: 90%; max-height: 90%; }
+            </style>
+          </head>
+          <body onload="window.print();window.close();">
+            <img src="${imgUrl}" />
+          </body>
+        </html>
+      `);
+      win.document.close();
+    });
+
+    /* ---------------- HISTORY LOGIC ---------------- */
+    function addHistoryRecord(content, formatName, isScanned) {
+      // Check for duplicate in history to prevent flooding
+      const existing = history.find(item => item.content === content && item.format === formatName);
+      if (existing) {
+        existing.timestamp = Date.now(); // update time
+      } else {
+        history.unshift({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+          content: content,
+          format: formatName,
+          timestamp: Date.now(),
+          isScanned: isScanned,
+          isFavorite: false
+        });
+      }
+      saveHistory();
+    }
+
+    function renderHistoryList() {
+      const listContainer = document.getElementById('history-list-container');
+      const filter = document.getElementById('history-filter').value;
+      const search = document.getElementById('history-search').value.toLowerCase().trim();
+
+      listContainer.innerHTML = '';
+
+      let filteredList = history;
+
+      // Filter by type
+      if (filter === 'scanned') {
+        filteredList = history.filter(item => item.isScanned);
+      } else if (filter === 'generated') {
+        filteredList = history.filter(item => !item.isScanned);
+      } else if (filter === 'fav') {
+        filteredList = history.filter(item => item.isFavorite);
+      }
+
+      // Filter by search
+      if (search) {
+        filteredList = filteredList.filter(item => 
+          item.content.toLowerCase().includes(search) || 
+          item.format.toLowerCase().includes(search)
+        );
+      }
+
+      if (filteredList.length === 0) {
+        listContainer.innerHTML = `
+          <div class="empty-state">
+            <i data-lucide="archive"></i>
+            <p>Nenhum registro encontrado.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      filteredList.forEach(item => {
+        const dateStr = new Date(item.timestamp).toLocaleDateString() + ' ' + new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const row = document.createElement('div');
+        row.className = 'history-item';
+        row.innerHTML = `
+          <div class="history-item-icon">
+            <i data-lucide="${item.isScanned ? 'scan-line' : 'qr-code'}"></i>
+          </div>
+          <div class="history-item-details">
+            <div class="history-item-title">${escapeHtml(item.content)}</div>
+            <div class="history-item-subtitle">
+              <span>${item.format}</span>
+              <span>${dateStr}</span>
+            </div>
+          </div>
+          <div class="history-item-actions">
+            <button class="history-btn fav ${item.isFavorite ? 'active' : ''}" onclick="toggleFavorite('${item.id}')">
+              <i data-lucide="star"></i>
+            </button>
+            <button class="history-btn" onclick="copyHistoryText('${item.id}')">
+              <i data-lucide="copy"></i>
+            </button>
+            <button class="history-btn" onclick="deleteHistoryItem('${item.id}')">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+        `;
+        listContainer.appendChild(row);
+      });
+      lucide.createIcons();
+    }
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Toggle favorite item
+    window.toggleFavorite = function(id) {
+      const item = history.find(i => i.id === id);
+      if (item) {
+        item.isFavorite = !item.isFavorite;
+        saveHistory();
+      }
+    };
+
+    // Copy text from list
+    window.copyHistoryText = function(id) {
+      const item = history.find(i => i.id === id);
+      if (item) {
+        navigator.clipboard.writeText(item.content).then(() => {
+          showToast("Copiado!");
+        });
+      }
+    };
+
+    // Delete single item
+    window.deleteHistoryItem = function(id) {
+      history = history.filter(i => i.id !== id);
+      saveHistory();
+    };
+
+    // Search and filters change listeners
+    document.getElementById('history-search').addEventListener('input', renderHistoryList);
+    document.getElementById('history-filter').addEventListener('change', renderHistoryList);
+
+    // Clear all history
+    document.getElementById('btn-clear-history').addEventListener('click', () => {
+      if (confirm("Deseja mesmo limpar todo o histórico?")) {
+        history = [];
+        saveHistory();
+        showToast("Histórico limpo!");
+      }
+    });
+
+    // Export CSV
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+      if (history.length === 0) {
+        showToast("Histórico vazio!");
+        return;
+      }
+      let csv = "ID,Tipo,Formato,Data,Conteudo,Favorito\n";
+      history.forEach(item => {
+        const dateStr = new Date(item.timestamp).toISOString();
+        csv += `"${item.id}","${item.isScanned ? 'Escaneado' : 'Gerado'}","${item.format}","${dateStr}","${item.content.replace(/'/g, "''")}","${item.isFavorite ? 'Sim' : 'Nao'}"\n`;
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', 'historico_samack.csv');
+      link.click();
+    });
+
+    // Export JSON
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+      if (history.length === 0) {
+        showToast("Histórico vazio!");
+        return;
+      }
+      const dataStr = JSON.stringify(history, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', 'historico_samack.json');
+      link.click();
+    });
+
+    /* ---------------- SETTINGS LOGIC ---------------- */
+    document.getElementById('settings-sound').addEventListener('change', (e) => {
+      settings.sound = e.target.checked;
+      saveSettings();
+    });
+
+    document.getElementById('settings-vibration').addEventListener('change', (e) => {
+      settings.vibration = e.target.checked;
+      saveSettings();
+    });
+
+    document.getElementById('settings-cooldown').addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (val >= 500 && val <= 5000) {
+        settings.cooldown = val;
+        saveSettings();
+      }
+    });
+
+    document.getElementById('settings-format').addEventListener('change', (e) => {
+      settings.exportFormat = e.target.value;
+      saveSettings();
+    });
+
+    // On Load Startup logic
+    window.addEventListener('load', () => {
+      loadStorage();
+      renderHistoryList();
+    });
+  </script>
+</body>
+</html>
